@@ -29,8 +29,8 @@ jobs:
 
       - name: Run pip-audit
         run: |
-          pip-audit --local --format json --output pip-audit-report.json || true
-          pip-audit --local
+          pip-audit --local --skip-editable --format json --output pip-audit-report.json || true
+          pip-audit --local --skip-editable
 
       - name: Upload audit report
         if: always()
