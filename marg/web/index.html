@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marg — India Mapping Engine</title>
+  <meta name="description" content="Marg: India-scoped self-hosted mapping, routing, and geocoding engine — interactive test interface." />
+
+  <!-- MapLibre GL JS -->
+  <link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-devanagari">मार्ग</span>
+        <span class="logo-latin">Marg</span>
+      </div>
+      <span class="version-badge" id="version-badge">v—</span>
+    </div>
+
+    <!-- Tab nav -->
+    <nav class="tab-nav" role="tablist">
+      <button id="tab-route" class="tab-btn active" role="tab" aria-selected="true" data-tab="panel-route">Route</button>
+      <button id="tab-geocode" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-geocode">Geocode</button>
+      <button id="tab-search" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-search">Search</button>
+      <button id="tab-health" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-health">Health</button>
+    </nav>
+
+    <!-- Route panel -->
+    <section id="panel-route" class="panel active" role="tabpanel">
+      <h2 class="panel-title">Calculate Route</h2>
+
+      <div class="field-group autocomplete-container">
+        <label for="start-input" class="field-label">Start <span class="hint">place name or lat,lon</span></label>
+        <input id="start-input" class="field-input" type="text" placeholder="e.g. Ishapore or 12.9352,77.6245" autocomplete="off" />
+        <div id="start-suggestions" class="suggestions-dropdown hidden"></div>
+      </div>
+
+      <div class="field-group autocomplete-container">
+        <label for="end-input" class="field-label">End <span class="hint">place name or lat,lon</span></label>
+        <input id="end-input" class="field-input" type="text" placeholder="e.g. Barrackpore or 12.9716,77.5946" autocomplete="off" />
+        <div id="end-suggestions" class="suggestions-dropdown hidden"></div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Profile</label>
+        <div class="profile-toggle" role="group" aria-label="Routing profile">
+          <button id="profile-car" class="profile-btn active" data-profile="car" title="Car">🚗 Car</button>
+          <button id="profile-bike" class="profile-btn" data-profile="bike" title="Bike">🚲 Bike</button>
+          <button id="profile-foot" class="profile-btn" data-profile="foot" title="Walking">🚶 Foot</button>
+        </div>
+      </div>
+
+      <button id="route-btn" class="primary-btn">Calculate Route</button>
+
+      <div id="route-result" class="result-card hidden">
+        <div class="result-stats">
+          <div class="stat">
+            <div class="stat-value" id="route-distance">—</div>
+            <div class="stat-label">Distance</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="route-duration">—</div>
+            <div class="stat-label">Duration</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="route-profile-badge">—</div>
+            <div class="stat-label">Profile</div>
+          </div>
+        </div>
+        <div id="steps-list" class="steps-list"></div>
+      </div>
+    </section>
+
+    <!-- Geocode panel -->
+    <section id="panel-geocode" class="panel" role="tabpanel">
+      <h2 class="panel-title">Geocode</h2>
+
+      <div class="field-group">
+        <label for="geocode-input" class="field-label">Address / Place Name</label>
+        <input id="geocode-input" class="field-input" type="text" placeholder="Koramangala, Bengaluru" autocomplete="off" />
+      </div>
+      <button id="geocode-btn" class="primary-btn">Forward Geocode</button>
+
+      <div class="divider">— or reverse geocode —</div>
+
+      <div class="coord-pair">
+        <div class="field-group half">
+          <label for="rev-lat" class="field-label">Latitude</label>
+          <input id="rev-lat" class="field-input" type="number" step="any" placeholder="12.9352" />
+        </div>
+        <div class="field-group half">
+          <label for="rev-lon" class="field-label">Longitude</label>
+          <input id="rev-lon" class="field-input" type="number" step="any" placeholder="77.6245" />
+        </div>
+      </div>
+      <button id="reverse-btn" class="secondary-btn">Reverse Geocode</button>
+
+      <div id="geocode-results" class="result-list"></div>
+    </section>
+
+    <!-- Search panel -->
+    <section id="panel-search" class="panel" role="tabpanel">
+      <h2 class="panel-title">POI Search</h2>
+
+      <div class="field-group">
+        <label for="search-input" class="field-label">Keyword</label>
+        <input id="search-input" class="field-input" type="text" placeholder="hospital, park, ATM…" autocomplete="off" />
+      </div>
+
+      <div class="coord-pair">
+        <div class="field-group half">
+          <label for="near-lat" class="field-label">Near lat <span class="hint">optional</span></label>
+          <input id="near-lat" class="field-input" type="number" step="any" placeholder="12.9352" />
+        </div>
+        <div class="field-group half">
+          <label for="near-lon" class="field-label">Near lon</label>
+          <input id="near-lon" class="field-input" type="number" step="any" placeholder="77.6245" />
+        </div>
+      </div>
+
+      <button id="search-btn" class="primary-btn">Search</button>
+      <div id="search-results" class="result-list"></div>
+    </section>
+
+    <!-- Health panel -->
+    <section id="panel-health" class="panel" role="tabpanel">
+      <h2 class="panel-title">System Health</h2>
+      <button id="health-btn" class="primary-btn">Refresh</button>
+      <div id="health-results" class="health-grid"></div>
+    </section>
+  </aside>
+
+  <!-- Map -->
+  <main id="map-container">
+    <div id="map"></div>
+    <div id="click-hint" class="click-hint">Click map to set Start / End waypoints</div>
+    <div id="toast" class="toast hidden" role="alert" aria-live="polite"></div>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+services:
+  # ─────────────────────────────────────────────────────────
+  # Marg API Gateway
+  # ─────────────────────────────────────────────────────────
+  marg-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marg-api
+    restart: unless-stopped
+    ports:
+      - "${MARG_PORT:-8000}:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      MARG_OSRM_FOOT_URL: http://marg-osrm-foot:5000
+      MARG_OSRM_CAR_URL: http://marg-osrm-car:5000
+      MARG_OSRM_BIKE_URL: http://marg-osrm-bike:5000
+      MARG_NOMINATIM_URL: http://marg-nominatim:8080
+    depends_on:
+      - marg-osrm-foot
+      - marg-osrm-car
+      - marg-osrm-bike
+      - marg-nominatim
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ─────────────────────────────────────────────────────────
+  # OSRM — Foot profile
+  # ─────────────────────────────────────────────────────────
+  marg-osrm-foot:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: marg-osrm-foot
+    restart: unless-stopped
+    volumes:
+      - ./data/osm:/data
+      - ./data/graphs/osrm-foot:/graphs
+    command: >
+      osrm-routed
+      --algorithm mld
+      /graphs/region.osrm
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────
+  # OSRM — Car profile
+  # ─────────────────────────────────────────────────────────
+  marg-osrm-car:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: marg-osrm-car
+    restart: unless-stopped
+    volumes:
+      - ./data/osm:/data
+      - ./data/graphs/osrm-car:/graphs
+    command: >
+      osrm-routed
+      --algorithm mld
+      /graphs/region.osrm
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────
+  # OSRM — Bike profile
+  # ─────────────────────────────────────────────────────────
+  marg-osrm-bike:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: marg-osrm-bike
+    restart: unless-stopped
+    volumes:
+      - ./data/osm:/data
+      - ./data/graphs/osrm-bike:/graphs
+    command: >
+      osrm-routed
+      --algorithm mld
+      /graphs/region.osrm
+    expose:
+      - "5000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ─────────────────────────────────────────────────────────
+  # Nominatim — Self-hosted geocoder (India extract)
+  # ─────────────────────────────────────────────────────────
+  marg-nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: marg-nominatim
+    restart: unless-stopped
+    environment:
+      PBF_PATH: /nominatim/data/india-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/asia/india-updates/
+      NOMINATIM_PASSWORD: ${NOMINATIM_DB_PASSWORD:-nominatim_secure_pw}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_pw}
+    volumes:
+      - ./data/osm:/nominatim/data
+      - nominatim-postgres:/var/lib/postgresql/14/main
+    expose:
+      - "8080"
+    ports:
+      - "8081:8080"   # expose on host for debugging; production: remove
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/search?q=Delhi&format=json"]
+      interval: 60s
+      timeout: 15s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  nominatim-postgres:
+
+# ─────────────────────────────────────────────────────────
+# Usage:
+#
+#   1. Download a pilot region:
+#        marg data download --region bengaluru
+#
+#   2. Pre-process OSRM graphs (run once per region outside Docker):
+#        docker run --rm -v $(pwd)/data:/data osrm/osrm-backend:v5.27.1 \
+#          osrm-extract -p /opt/car.lua /data/osm/bengaluru-latest.osm.pbf
+#        docker run --rm -v $(pwd)/data:/data osrm/osrm-backend:v5.27.1 \
+#          osrm-partition /data/osm/bengaluru-latest.osrm
+#        docker run --rm -v $(pwd)/data:/data osrm/osrm-backend:v5.27.1 \
+#          osrm-customize /data/osm/bengaluru-latest.osrm
+#
+#   3. Start the full stack:
+#        docker compose up -d
+#
+#   4. Verify:
+#        curl http://localhost:8000/health
+# ─────────────────────────────────────────────────────────

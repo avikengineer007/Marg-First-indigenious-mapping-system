@@ -1,0 +1,87 @@
+# ─── Python ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+develop-eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-link
+MANIFEST
+
+# ─── Virtual Environments ───────────────────
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# ─── Secrets & Credentials ─────────────────
+# NEVER commit .env, keys, or certificates
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+*_secret*
+*_credentials*
+
+# ─── Data & OSM Extracts ────────────────────
+# These can be many GB — download via `marg data download`
+data/osm/
+data/tiles/
+data/geocode.db
+data/telemetry.db
+data/*.pbf
+data/*.osm
+data/*.pmtiles
+data/*.mbtiles
+
+# ─── Routing Graphs (OSRM pre-processed) ────
+*.osrm
+*.osrm.*
+graphs/
+data/graphs/
+
+# ─── Logs ───────────────────────────────────
+*.log
+logs/
+
+# ─── IDE & Editor ───────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─── Testing & Coverage ─────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# ─── Typing ─────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+
+# ─── Docker ─────────────────────────────────
+# Local override files are not committed
+docker-compose.override.yml

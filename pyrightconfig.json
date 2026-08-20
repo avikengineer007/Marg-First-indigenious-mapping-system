@@ -1,0 +1,20 @@
+{
+  "pythonVersion": "3.14",
+  "pythonPlatform": "Windows",
+  "extraPaths": [
+    "C:\\Users\\LENOVO\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages",
+    "e:\\Projects\\Marg-mapping software"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "include": [
+    "marg",
+    "tests"
+  ],
+  "exclude": [
+    ".venv",
+    "data",
+    "**/__pycache__"
+  ]
+}
