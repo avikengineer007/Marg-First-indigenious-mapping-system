@@ -60,6 +60,10 @@ marg = "marg.cli.cli:app"
 where = ["."]
 include = ["marg*"]
 
+[tool.setuptools.package-data]
+"marg.web" = ["*"]
+"marg" = ["web/*"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

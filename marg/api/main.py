@@ -129,16 +129,38 @@ app.include_router(telemetry.router)
 app.include_router(health.router)
 
 # ── Static web visualiser ─────────────────────────────────────────────────────
-_WEB_DIR = Path(__file__).parent.parent / "web"
+_WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 if _WEB_DIR.exists():
-    from fastapi.staticfiles import StaticFiles
+    from fastapi.staticfiles import StaticFiles  # type: ignore
     app.mount("/static", StaticFiles(directory=str(_WEB_DIR)), name="static")
 
 @app.get("/", include_in_schema=False)
 async def serve_index():
     index = _WEB_DIR / "index.html"
     if index.exists():
-        from fastapi.responses import FileResponse
-        return FileResponse(str(index))
-    return JSONResponse({"name": "Marg", "version": __version__, "docs": "/docs"})
+        from fastapi.responses import HTMLResponse  # type: ignore
+        return HTMLResponse(content=index.read_text(encoding="utf-8"))
+    return JSONResponse({
+        "name": "Marg",
+        "description": "India-scoped self-hosted mapping & routing engine",
+        "version": __version__,
+        "docs": "/docs",
+        "health": "/health"
+    })
+
+@app.get("/style.css", include_in_schema=False)
+async def serve_css():
+    css = _WEB_DIR / "style.css"
+    if css.exists():
+        from fastapi.responses import Response  # type: ignore
+        return Response(content=css.read_text(encoding="utf-8"), media_type="text/css")
+    return JSONResponse({"error": "style.css not found"}, status_code=404)
+
+@app.get("/app.js", include_in_schema=False)
+async def serve_js():
+    js = _WEB_DIR / "app.js"
+    if js.exists():
+        from fastapi.responses import Response  # type: ignore
+        return Response(content=js.read_text(encoding="utf-8"), media_type="application/javascript")
+    return JSONResponse({"error": "app.js not found"}, status_code=404)

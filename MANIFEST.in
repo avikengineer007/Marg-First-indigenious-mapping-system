@@ -1,0 +1,2 @@
+include marg/web/*
+recursive-include marg/web *
