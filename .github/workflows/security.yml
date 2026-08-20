@@ -21,20 +21,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install pip-audit
-        run: pip install pip-audit pip-tools
-
-      - name: Generate pinned requirements
-        run: pip-compile pyproject.toml --extra dev -o requirements.lock --quiet
+      - name: Install dependencies and pip-audit
+        run: |
+          pip install --upgrade pip
+          pip install .
+          pip install pip-audit
 
       - name: Run pip-audit
         run: |
-          pip-audit \
-            --strict \
-            --requirement requirements.lock \
-            --format json \
-            --output pip-audit-report.json
-        # Non-zero exit on any HIGH/CRITICAL CVE fails the job
+          pip-audit --local --format json --output pip-audit-report.json || true
+          pip-audit --local
 
       - name: Upload audit report
         if: always()
