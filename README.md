@@ -10,6 +10,8 @@
 [![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-India%20Extracts-7EBC6F?logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/avikengineer007/Marg-First-indigenious-mapping-system)
+
 <p align="center">
   <b>A production-ready, self-hosted mapping backend built specifically for India.</b><br>
   Exposes deterministic REST APIs for turn-by-turn multi-modal routing (Foot, Car, Bike),<br>

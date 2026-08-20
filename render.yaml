@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: marg-mapping-engine
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: "pip install --upgrade pip && pip install -e ."
+    startCommand: "uvicorn marg.api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.3"
+      - key: MARG_NOMINATIM_URL
+        value: "https://nominatim.openstreetmap.org"
+      - key: MARG_RATE_LIMIT_RPM
+        value: "120"
+      - key: MARG_TELEMETRY_ENABLED
+        value: "false"
