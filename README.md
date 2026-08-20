@@ -1,169 +1,196 @@
-# मार्ग Marg — India-Scoped Self-Hosted Mapping & Routing Engine
+<div align="center">
 
-> **Marg** (Sanskrit/Hindi: *path, route*) is a standalone, self-hosted mapping and routing backend scoped exclusively to India. It exposes a clean generic REST API — routing, geocoding, place search, and tile serving — designed to be consumed by any application the same way one would call a third-party maps API. Built with rate limiting, fail-closed validation, and CI-enforced dependency and secrets scanning.
+# 🗺️ मार्ग (Marg)
+### India's Sovereign Self-Hosted Mapping & Routing Engine
 
-[![CI](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions/workflows/ci.yml/badge.svg)](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions)
-[![Security](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions/workflows/security.yml/badge.svg)](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/avikengineer007/Marg-First-indigenious-mapping-system/ci.yml?branch=main&label=CI%20Build&logo=github)](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions)
+[![Security Checks](https://img.shields.io/github/actions/workflow/status/avikengineer007/Marg-First-indigenious-mapping-system/security.yml?branch=main&label=Security%20Checks&logo=github)](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system/actions)
+[![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.14-blue?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![OpenStreetMap](https://img.shields.io/badge/OpenStreetMap-India%20Extracts-7EBC6F?logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+<p align="center">
+  <b>A production-ready, self-hosted mapping backend built specifically for India.</b><br>
+  Exposes deterministic REST APIs for turn-by-turn multi-modal routing (Foot, Car, Bike),<br>
+  forward/reverse geocoding, POI search, and vector/raster map tile rendering.
+</p>
 
-## Architecture
+[Quick Start](#-quick-start) • [Features](#-features) • [API Documentation](#-api-endpoints) • [Interactive Visualizer](#-interactive-map-visualizer) • [Scaling to Full India](#-scaling-path)
 
-```
-Client / App
-     │
-     ▼
-Marg Gateway (FastAPI)
-├── Rate Limiting (SlowAPI)
-├── India Bounding Box Validator (lat 6–37.5°N, lon 68–97.5°E)
-├── Fail-Closed Error Handlers
-│
-├─ /route   ──► OSRM (foot/car/bike profiles) or Local Graph Router
-├─ /geocode ──► Nominatim (self-hosted) or Local SQLite FTS5
-├─ /search  ──► Nominatim POI search or Local FTS5
-├─ /tiles   ──► Local PMTiles archive or upstream fallback
-└─ /health  ──► Component health probes
-```
-
-## Pilot Cities (Phase 1)
-
-| City | OSM Extract | Bbox |
-|---|---|---|
-| Bengaluru | Karnataka extract (Geofabrik) | 12.73–13.17°N, 77.38–77.82°E |
-| Delhi NCR | Delhi extract (Geofabrik) | 28.30–28.88°N, 76.84–77.35°E |
-| Mumbai | Maharashtra extract (Geofabrik) | 18.89–19.27°N, 72.78–73.06°E |
+</div>
 
 ---
 
-## Quick Start
+## 🌟 Highlights & Features
 
-### Prerequisites
-- Python 3.11+
-- Docker & Docker Compose (for production stack)
+- 🇮🇳 **India Geographic Scoping**: Strict fail-closed bounding box validation (`6.0°N–37.5°N`, `68.0°E–97.5°E`) ensuring optimal memory footprint and regional precision.
+- 🚗 **Multi-Modal Routing**: Profile-aware point-to-point and multi-waypoint path calculation for **Foot**, **Car**, and **Bike**.
+- 📍 **Smart Forward & Reverse Geocoding**: Search places by text query across India with automatic coordinate resolution and proximity bias.
+- 🗺️ **Interactive Visualizer**: Built-in MapLibre GL UI with real-time autocomplete, profile color coding, and turn-by-turn instruction panels.
+- 🔒 **Enterprise-Grade Security**: Rate limiting per endpoint, automated input sanitization, zero stack trace leakage, and continuous security auditing (`pip-audit` & `detect-secrets`).
+- ⚡ **Zero-Docker Standalone Fallback**: Includes a built-in Python A* routing engine and SQLite FTS5 index for instant local development without Docker.
 
-### 1. Clone and install
+---
+
+## 🏗️ Architecture
+
+```
+                    ┌───────────────────────────────────┐
+                    │      Client App / Frontend        │
+                    └─────────────────┬─────────────────┘
+                                      │ REST API / JSON
+                                      ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Marg Gateway (FastAPI)                          │
+│  ├── SlowAPI Token Bucket Rate Limiting                                │
+│  ├── India Bounding Box Validator (6.0–37.5°N, 68.0–97.5°E)            │
+│  └── Fail-Closed Error Handlers & Sanitized Envelopes                  │
+└──────┬─────────────────┬──────────────────┬─────────────────┬──────────┘
+       │                 │                  │                 │
+       ▼                 ▼                  ▼                 ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│   /route     │  │   /geocode   │  │   /search    │  │   /tiles     │
+│ 3× OSRM      │  │ Self-Hosted  │  │ Nominatim    │  │ Local PMTiles│
+│ (Foot/Car/   │  │ Nominatim or │  │ POI Search   │  │ or Upstream  │
+│  Bike) or A* │  │ SQLite FTS5  │  │ or FTS5      │  │ Tile Cache   │
+└──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘
+```
+
+---
+
+## 🚀 Quick Start
+
+### 1. Clone & Setup Environment
 
 ```powershell
 git clone https://github.com/avikengineer007/Marg-First-indigenious-mapping-system.git
 cd Marg-First-indigenious-mapping-system
+
+# Create and activate virtual environment
 python -m venv .venv
 .venv\Scripts\activate
+
+# Install dependencies in editable mode
 pip install -e ".[dev]"
 ```
 
-### 2. Configure environment
+### 2. Configure Environment
 
 ```powershell
+# Copy the template environment configuration
 Copy-Item .env.example .env
-# Edit .env as needed — no hardcoded secrets
 ```
 
-### 3. Install pre-commit hooks (required)
+### 3. Download Pilot Region Data
 
-```powershell
-pre-commit install
-```
-
-### 4. Run the API (development mode — no Docker required)
-
-```powershell
-marg serve --reload
-# → http://localhost:8000
-# → http://localhost:8000/docs  (interactive API docs)
-```
-
-### 5. Download and build pilot data
+Download open OSM data for your desired pilot city (Bengaluru, Delhi NCR, or Mumbai):
 
 ```powershell
 marg data download --region bengaluru
 marg data build --region bengaluru
 ```
 
-### 6. Production stack (Docker Compose)
-
-See [docker/README.md](docker/README.md) for OSRM pre-processing steps.
+### 4. Run Marg API Server
 
 ```powershell
+marg serve --reload
+```
+
+Once running, access:
+- 🌐 **Interactive Map Visualizer**: [http://localhost:8000](http://localhost:8000)
+- 📖 **Interactive API Docs (Swagger UI)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- 🩺 **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
+
+---
+
+## 🖥️ Interactive Map Visualizer
+
+Open **[http://localhost:8000](http://localhost:8000)** in your browser:
+1. Type a place name in **Start** (e.g. `Ishapore` or `Koramangala`) and **End** (e.g. `Barrackpore` or `Indiranagar`).
+2. Select from the real-time **Autocomplete dropdown** or click anywhere on the map to drop pins.
+3. Switch routing profiles (**🚗 Car**, **🚲 Bike**, **🚶 Foot**) and click **Calculate Route** to render turn-by-turn routes with distance and duration metrics.
+
+---
+
+## 🛠️ CLI Tooling (`marg`)
+
+Marg comes with a rich terminal command-line tool:
+
+```powershell
+marg serve          # Start the FastAPI engine (supports --host, --port, --reload)
+marg health         # Probe status and response latencies of all engine backends
+marg data download  # Download OSM regional PBF extracts (bengaluru, delhi, mumbai)
+marg data build     # Parse OSM PBF and compile routing graphs + geocode indices
+marg test-route     # Compute and display a route directly in your terminal
+marg audit          # Run an instant dependency vulnerability scan via pip-audit
+```
+
+---
+
+## 📡 API Endpoints
+
+See the full [API Specification](docs/api.md) for detailed schemas and parameter tables.
+
+| Method | Endpoint | Description | Example Query |
+|---|---|---|---|
+| `GET` | `/route` | Turn-by-turn routing (Foot, Car, Bike) | `?start=12.9352,77.6245&end=12.9716,77.5946&profile=car` |
+| `GET` | `/geocode` | Forward geocoding: Place Name ➔ Coordinates | `?q=Connaught+Place+Delhi&limit=5` |
+| `GET` | `/geocode/reverse` | Reverse geocoding: Coordinates ➔ Address | `?lat=12.9352&lon=77.6245` |
+| `GET` | `/search` | POI & place keyword search with proximity bias | `?q=hospital&near_lat=12.93&near_lon=77.62` |
+| `GET` | `/tiles/{z}/{x}/{y}.pbf` | Vector map tile service | `/tiles/12/2855/1912.pbf` |
+| `GET` | `/health` | Health and readiness status for all backends | `/health` |
+| `POST` | `/telemetry/ping` | Phase 2: DPDP 2023-compliant anonymized pings | *(Disabled by default)* |
+
+---
+
+## 🐳 Production Deployment (Docker Compose)
+
+For high-throughput production environments with containerized OSRM and Nominatim:
+
+```powershell
+# Start all microservices: Marg Gateway, 3x OSRM engines, and Nominatim
 docker compose up -d
+
+# Verify system health
+marg health
 ```
 
 ---
 
-## CLI Reference
-
-```
-marg serve          Start the API server
-marg health         Check all backend components
-marg data download  Download OSM PBF for a pilot region
-marg data build     Build routing graph and geocode index
-marg test-route     Run a sample route in the terminal
-marg audit          Dependency vulnerability scan (pip-audit)
-```
-
----
-
-## API Endpoints
-
-See full API documentation in [docs/api.md](docs/api.md).
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/route` | GET | Point-to-point routing with `profile` (foot/car/bike) |
-| `/geocode` | GET | Forward geocoding: address → coordinates |
-| `/geocode/reverse` | GET | Reverse geocoding: coordinates → address |
-| `/search` | GET | POI/place keyword search |
-| `/tiles/style.json` | GET | MapLibre GL style specification |
-| `/tiles/{z}/{x}/{y}.pbf` | GET | Vector map tiles |
-| `/health` | GET | System health check |
-| `/telemetry/ping` | POST | Phase 2: DPDP-compliant location ping (disabled by default) |
-
----
-
-## Testing
+## 🧪 Testing & Validation
 
 ```powershell
-# Run full test suite
+# Run the complete test suite (110+ tests)
 pytest -v
 
-# Run with coverage
+# Run with test coverage report
 pytest --cov=marg --cov-report=term-missing
 ```
 
 ---
 
-## Scaling Path: Pilot → Full India
+## 📈 Scaling Path
 
-See [docs/scaling.md](docs/scaling.md) for the detailed extension path.
+| Phase | Milestone | Scope & Dataset |
+|---|---|---|
+| **Phase 1 (Current)** | Pilot City Deployments | Bengaluru, Delhi NCR, Mumbai sub-region extracts |
+| **Phase 2** | Full India Coverage | Full `india-latest.osm.pbf` Geofabrik import (~1.2 GB) |
+| **Phase 3** | National Vector Tiles | Country-wide PMTiles archive generation (Zoom 0–14) |
+| **Phase 4** | Traffic-Aware Routing | Telemetry speed profile aggregation for dynamic OSRM routing |
 
-**Summary**:
-1. **Phase 1 (Now)**: Bengaluru + Delhi + Mumbai pilot extracts
-2. **Phase 2**: Download full `india-latest.osm.pbf` from Geofabrik, rebuild OSRM graphs and Nominatim index for all of India
-3. **Phase 3**: Tile server upgrade to full India PMTiles archive
-4. **Phase 4 (DPDP-compliant)**: Enable telemetry ingestion to bootstrap traffic dataset from user base
-
----
-
-## Phase 2: Live Telemetry (DPDP Act 2023)
-
-The `/telemetry/ping` endpoint is **disabled by default** (`MARG_TELEMETRY_ENABLED=false`).
-
-When enabled:
-- Requires explicit user opt-in (`X-Marg-Consent: 1` header — only set after obtaining consent)
-- Session IDs pseudonymized with 24-hour rolling salt before storage
-- No device ID, no user ID ever stored
-- Speed and coordinate plausibility bounds enforced
-- Compliant with India DPDP Act 2023: purpose limitation, data minimization, consent, retention policy
+*Read the complete [Scaling Architecture Guide](docs/scaling.md).*
 
 ---
 
-## Publisher & Author
+## 👤 Publisher & Author
 
 **Avik Ghosh**  
-GitHub: [@avikengineer007](https://github.com/avikengineer007)  
-Repository: [Marg-First-indigenious-mapping-system](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system)
+- **GitHub**: [@avikengineer007](https://github.com/avikengineer007)  
+- **Repository**: [Marg-First-indigenious-mapping-system](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system)
 
 ---
 
-## Copyright & Rights
+## 📄 Copyright & Rights
 
 Copyright © 2026 **Avik Ghosh**. All Rights Reserved.
