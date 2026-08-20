@@ -119,18 +119,6 @@ See full API documentation in [docs/api.md](docs/api.md).
 
 ---
 
-## Security
-
-- **Rate limiting**: All endpoints rate-limited (configurable via `MARG_RATE_LIMIT_RPM`)
-- **India bounding box**: All coordinates validated against India's geographic bounds before routing or geocoding
-- **Input sanitization**: Injection patterns rejected before reaching any backend
-- **Fail-closed**: No route = structured `no_route` response, not a guess
-- **No stack trace leakage**: Generic error messages exposed to clients; full detail logged server-side only
-- **Secrets**: All credentials via environment variables; `detect-secrets` pre-commit hook + CI scan guards against accidental commits
-- **Dependency scanning**: `pip-audit` runs on every push/PR and weekly via GitHub Actions
-
----
-
 ## Testing
 
 ```powershell
@@ -139,10 +127,6 @@ pytest -v
 
 # Run with coverage
 pytest --cov=marg --cov-report=term-missing
-
-# Security scans
-pip-audit --strict
-detect-secrets scan --baseline .secrets.baseline
 ```
 
 ---
@@ -172,7 +156,14 @@ When enabled:
 
 ---
 
-## License
+## Publisher & Author
 
-MIT
->>>>>>> 27dd6f3 (feat: initial release of Marg — India-scoped self-hosted mapping and routing engine)
+**Avik Ghosh**  
+GitHub: [@avikengineer007](https://github.com/avikengineer007)  
+Repository: [Marg-First-indigenious-mapping-system](https://github.com/avikengineer007/Marg-First-indigenious-mapping-system)
+
+---
+
+## Copyright & Rights
+
+Copyright © 2026 **Avik Ghosh**. All Rights Reserved.
