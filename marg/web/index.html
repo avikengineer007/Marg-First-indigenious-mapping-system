@@ -31,6 +31,7 @@
     <!-- Tab nav -->
     <nav class="tab-nav" role="tablist">
       <button id="tab-route" class="tab-btn active" role="tab" aria-selected="true" data-tab="panel-route">Route</button>
+      <button id="tab-track" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-track">Live Track</button>
       <button id="tab-geocode" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-geocode">Geocode</button>
       <button id="tab-search" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-search">Search</button>
       <button id="tab-health" class="tab-btn" role="tab" aria-selected="false" data-tab="panel-health">Health</button>
@@ -79,6 +80,44 @@
           </div>
         </div>
         <div id="steps-list" class="steps-list"></div>
+      </div>
+    </section>
+
+    <!-- Live Track panel -->
+    <section id="panel-track" class="panel" role="tabpanel">
+      <h2 class="panel-title">Live Tracking & Re-Route</h2>
+      <p class="panel-subtitle">Simulate real-time GPS position updates and off-route recalculation against an active route.</p>
+
+      <div class="field-group">
+        <label for="track-dest-input" class="field-label">Destination <span class="hint">lat,lon</span></label>
+        <input id="track-dest-input" class="field-input" type="text" placeholder="12.9716,77.5946" value="12.9716,77.5946" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Simulation Controls</label>
+        <div class="button-group">
+          <button id="sim-start-btn" class="primary-btn">▶ Start Simulation</button>
+          <button id="sim-offroute-btn" class="secondary-btn">🔀 Drift Off Route</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label for="track-threshold" class="field-label">Off-Route Threshold: <span id="threshold-val">50</span>m</label>
+        <input id="track-threshold" type="range" min="10" max="200" value="50" step="5" class="range-slider" />
+      </div>
+
+      <div id="track-result" class="result-card hidden">
+        <div class="result-stats">
+          <div class="stat">
+            <div class="stat-value" id="track-status-badge">On Track</div>
+            <div class="stat-label">Status</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="track-deviation">0.0 m</div>
+            <div class="stat-label">Deviation</div>
+          </div>
+        </div>
+        <div id="track-message" class="track-message">Position synced.</div>
       </div>
     </section>
 

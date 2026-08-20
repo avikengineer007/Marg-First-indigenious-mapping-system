@@ -304,11 +304,18 @@ document.getElementById('route-btn').addEventListener('click', async () => {
   }
 });
 
+let activeRouteData = null;
+let activeRouteGeometry = null;
+
 function renderRoute(data) {
+  activeRouteData = data;
+  activeRouteGeometry = data.geometry;
+
   // Remove old route layer
   if (routeLayerId) {
     if (map.getLayer(routeLayerId)) map.removeLayer(routeLayerId);
     if (map.getSource(routeLayerId)) map.removeSource(routeLayerId);
+    if (map.getLayer(`${routeLayerId}-shadow`)) map.removeLayer(`${routeLayerId}-shadow`);
   }
 
   const profileColors = { car: '#79c0ff', bike: '#f0883e', foot: '#56d364' };
@@ -347,12 +354,156 @@ function renderRoute(data) {
   }
 }
 
+// ─── Live Tracking & Simulation ───────────────────────────────────────────────
+
+let liveUserMarker = null;
+let simInterval = null;
+let simStepIndex = 0;
+let currentSimPos = null;
+
+const trackThresholdSlider = document.getElementById('track-threshold');
+if (trackThresholdSlider) {
+  trackThresholdSlider.addEventListener('input', (e) => {
+    document.getElementById('threshold-val').textContent = e.target.value;
+  });
+}
+
+function getLiveMarker() {
+  if (!liveUserMarker) {
+    const el = document.createElement('div');
+    el.className = 'user-live-marker';
+    liveUserMarker = new maplibregl.Marker({ element: el })
+      .setLngLat(INDIA_CENTER)
+      .addTo(map);
+  }
+  return liveUserMarker;
+}
+
+async function sendTrackingPing(lat, lon, isDrift = false) {
+  const destInput = document.getElementById('track-dest-input');
+  const destination = destInput?.value.trim() || (endMarker ? `${endMarker.getLngLat().lat},${endMarker.getLngLat().lng}` : '12.9716,77.5946');
+  const threshold = parseFloat(trackThresholdSlider?.value || 50.0);
+
+  const payload = {
+    lat: lat,
+    lon: lon,
+    destination: destination,
+    profile: selectedProfile,
+    route_geometry: activeRouteGeometry,
+    off_route_threshold_m: threshold,
+    steps: true,
+  };
+
+  try {
+    const r = await fetch(`${API_BASE}/route/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+
+    const resultCard = document.getElementById('track-result');
+    const badge = document.getElementById('track-status-badge');
+    const devEl = document.getElementById('track-deviation');
+    const msgEl = document.getElementById('track-message');
+    if (resultCard) resultCard.classList.remove('hidden');
+
+    if (data.status === 'ok') {
+      devEl.textContent = `${data.distance_to_route_m} m`;
+      if (data.off_route) {
+        badge.textContent = 'Off Route';
+        badge.style.color = 'var(--warning)';
+        msgEl.textContent = '⚠️ Off-route deviation detected! Automatic recalculation triggered.';
+        showToast('Off-route detected — rerouting!', 'warning');
+        if (data.reroute) {
+          renderRoute(data.reroute);
+          activeRouteGeometry = data.reroute.geometry;
+          simStepIndex = 0;
+        }
+      } else {
+        badge.textContent = 'On Track';
+        badge.style.color = 'var(--success)';
+        msgEl.textContent = `Synced. Distance to path: ${data.distance_to_route_m}m.`;
+      }
+    } else {
+      msgEl.textContent = data.detail || 'Tracking update failed.';
+    }
+  } catch (e) {
+    showToast(`Tracking error: ${e.message}`, 'error');
+  }
+}
+
+const simStartBtn = document.getElementById('sim-start-btn');
+if (simStartBtn) {
+  simStartBtn.addEventListener('click', async () => {
+    if (simInterval) {
+      clearInterval(simInterval);
+      simInterval = null;
+      simStartBtn.textContent = '▶ Resume Simulation';
+      return;
+    }
+
+    // If no route exists, calculate sample route first
+    if (!activeRouteGeometry || !activeRouteGeometry.coordinates || activeRouteGeometry.coordinates.length < 2) {
+      showToast('Calculating initial route for simulation…', 'info');
+      try {
+        const r = await fetch(`${API_BASE}/route?start=12.9352,77.6245&end=12.9716,77.5946&profile=${selectedProfile}`);
+        const data = await r.json();
+        if (data.status === 'ok') {
+          renderRoute(data);
+          renderRouteResult(data);
+        }
+      } catch (_) {}
+    }
+
+    const coords = activeRouteGeometry?.coordinates || [[77.6245, 12.9352], [77.5946, 12.9716]];
+    simStartBtn.textContent = '⏸ Pause Simulation';
+    const marker = getLiveMarker();
+
+    simInterval = setInterval(() => {
+      if (simStepIndex >= coords.length) {
+        simStepIndex = 0;
+      }
+      const [lon, lat] = coords[simStepIndex];
+      currentSimPos = { lat, lon };
+      marker.setLngLat([lon, lat]);
+      sendTrackingPing(lat, lon);
+      simStepIndex++;
+    }, 1200);
+  });
+}
+
+const simOffRouteBtn = document.getElementById('sim-offroute-btn');
+if (simOffRouteBtn) {
+  simOffRouteBtn.addEventListener('click', () => {
+    if (!currentSimPos) {
+      currentSimPos = { lat: 12.9352, lon: 77.6245 };
+    }
+    // Inject deviation: ~350m offset
+    currentSimPos.lat += 0.003;
+    currentSimPos.lon += 0.003;
+    const marker = getLiveMarker();
+    marker.setLngLat([currentSimPos.lon, currentSimPos.lat]);
+    map.flyTo({ center: [currentSimPos.lon, currentSimPos.lat], zoom: 15 });
+    sendTrackingPing(currentSimPos.lat, currentSimPos.lon, true);
+  });
+}
+
+function formatDuration(seconds) {
+  if (!seconds || seconds <= 0) return '0 min';
+  const totalMin = Math.round(seconds / 60);
+  if (totalMin < 60) return `${totalMin} min`;
+  const hrs = Math.floor(totalMin / 60);
+  const mins = totalMin % 60;
+  return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+}
+
 function renderRouteResult(data) {
   const el = document.getElementById('route-result');
   el.classList.remove('hidden');
 
   document.getElementById('route-distance').textContent = `${(data.distance_m / 1000).toFixed(2)} km`;
-  document.getElementById('route-duration').textContent = `${(data.duration_s / 60).toFixed(1)} min`;
+  document.getElementById('route-duration').textContent = formatDuration(data.duration_s);
   document.getElementById('route-profile-badge').textContent = data.profile;
 
   const stepsEl = document.getElementById('steps-list');

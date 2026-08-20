@@ -85,13 +85,13 @@ class RoadGraph:
     Minimalist directed graph representation for local routing.
 
     Nodes: indexed by integer ID, with (lat, lon) coordinates.
-    Edges: (from_node, to_node, distance_m, highway_tag)
+    Edges: (from_node, to_node, distance_m, highway_tag, is_synthetic)
     """
 
     def __init__(self) -> None:
         self.nodes: dict[int, tuple[float, float]] = {}   # id -> (lat, lon)
-        self.adjacency: dict[int, list[tuple[int, float, float]]] = {}
-        # adjacency[from_id] = [(to_id, distance_m, speed_kmh)]
+        self.adjacency: dict[int, list[tuple[int, float, float, bool]]] = {}
+        # adjacency[from_id] = [(to_id, distance_m, speed_kmh, is_synthetic)]
 
     def add_node(self, node_id: int, lat: float, lon: float) -> None:
         self.nodes[node_id] = (lat, lon)
@@ -105,6 +105,7 @@ class RoadGraph:
         highway: str = "unclassified",
         profile: str = "car",
         bidirectional: bool = True,
+        is_synthetic: bool = False,
     ) -> None:
         if from_id not in self.nodes or to_id not in self.nodes:
             return
@@ -112,9 +113,35 @@ class RoadGraph:
         lat2, lon2 = self.nodes[to_id]
         dist = _haversine_m(lat1, lon1, lat2, lon2)
         speed = _SPEEDS.get(profile, {}).get(highway, _DEFAULT_SPEED.get(profile, 30.0))
-        self.adjacency.setdefault(from_id, []).append((to_id, dist, speed))
+        self.adjacency.setdefault(from_id, []).append((to_id, dist, speed, is_synthetic))
         if bidirectional:
-            self.adjacency.setdefault(to_id, []).append((from_id, dist, speed))
+            self.adjacency.setdefault(to_id, []).append((from_id, dist, speed, is_synthetic))
+
+    def bridge_dead_ends(self, max_gap_m: float = 30.0, profile: str = "car") -> int:
+        """
+        Topological gap bridging heuristic: connects isolated degree-1 dead ends
+        to nearby navigable nodes within `max_gap_m`.
+        All generated edges are tagged with is_synthetic=True for auditability.
+        """
+        bridged_count = 0
+        node_ids = list(self.nodes.keys())
+        for nid in node_ids:
+            # Check if dead-end (degree <= 1)
+            if len(self.adjacency.get(nid, [])) <= 1:
+                lat1, lon1 = self.nodes[nid]
+                for other_id in node_ids:
+                    if other_id == nid:
+                        continue
+                    lat2, lon2 = self.nodes[other_id]
+                    dist = _haversine_m(lat1, lon1, lat2, lon2)
+                    if 0.5 <= dist <= max_gap_m:
+                        self.add_edge(
+                            nid, other_id, highway="service", profile=profile,
+                            bidirectional=True, is_synthetic=True
+                        )
+                        bridged_count += 1
+                        break
+        return bridged_count
 
     def nearest_node(self, lat: float, lon: float) -> int | None:
         """Return the node closest to (lat, lon)."""
@@ -126,7 +153,7 @@ class RoadGraph:
         )
 
     def astar(
-        self, start_id: int, end_id: int
+        self, start_id: int, end_id: int, allow_synthetic: bool = True
     ) -> tuple[list[int], float, float] | None:
         """
         A* shortest path from start_id to end_id.
@@ -161,13 +188,25 @@ class RoadGraph:
                 path.reverse()
 
                 total_dist = g_score[end_id]
-                # Estimate duration from total distance at profile default speed
-                # (a rough approximation — per-edge durations would be more accurate)
                 total_dur = total_dist / (_DEFAULT_SPEED.get("car", 30) / 3.6)
                 return path, total_dist, total_dur
 
-            for neighbor, dist_m, speed_kmh in self.adjacency.get(current, []):
+            for edge in self.adjacency.get(current, []):
+                # Handle both (to_id, dist, speed, is_synthetic) and legacy 3-tuple
+                if len(edge) == 4:
+                    neighbor, dist_m, speed_kmh, is_synthetic = edge
+                else:
+                    neighbor, dist_m, speed_kmh = edge[0], edge[1], edge[2]
+                    is_synthetic = False
+
+                if is_synthetic and not allow_synthetic:
+                    continue
+
                 duration_s = dist_m / (speed_kmh / 3.6)
+                # Apply 1.8x traversal penalty to synthetic edges to strongly prefer ground-truth OSM ways
+                if is_synthetic:
+                    duration_s *= 1.8
+
                 tentative_g = g_score[current] + duration_s
                 if tentative_g < g_score.get(neighbor, float("inf")):
                     came_from[neighbor] = current
@@ -228,7 +267,8 @@ class GraphRouter:
         if start_node is None or end_node is None:
             return None
 
-        result = self._graph.astar(start_node, end_node)
+        from marg.config import settings
+        result = self._graph.astar(start_node, end_node, allow_synthetic=settings.enable_synthetic_bridging)
         if result is None:
             return None
 

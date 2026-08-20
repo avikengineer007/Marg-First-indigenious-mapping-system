@@ -155,3 +155,48 @@ class TestHealthEndpoint:
         body = resp.text
         assert "traceback" not in body.lower()
         assert "site-packages" not in body
+
+
+class TestSyntheticGraphBridging:
+    """RoadGraph synthetic edge tagging and bridging"""
+
+    def test_synthetic_edge_tagging(self):
+        from marg.engine.graph_router import RoadGraph
+        graph = RoadGraph()
+        graph.add_node(1, 12.9352, 77.6245)
+        graph.add_node(2, 12.9353, 77.6246)
+        graph.add_edge(1, 2, highway="primary", is_synthetic=False)
+        assert graph.adjacency[1][0][3] is False
+
+        # Add synthetic edge
+        graph.add_node(3, 12.9354, 77.6247)
+        graph.add_edge(2, 3, highway="service", is_synthetic=True)
+        assert graph.adjacency[2][1][3] is True
+
+    def test_bridge_dead_ends_creates_synthetic_edges(self):
+        from marg.engine.graph_router import RoadGraph
+        graph = RoadGraph()
+        # Node 1 connected to Node 2 (isolated segment)
+        graph.add_node(1, 12.93520, 77.62450)
+        graph.add_node(2, 12.93525, 77.62455)
+        graph.add_edge(1, 2, highway="residential", is_synthetic=False)
+
+        # Node 3 connected to Node 4 (nearby segment, 15m away)
+        graph.add_node(3, 12.93535, 77.62465)
+        graph.add_node(4, 12.93540, 77.62470)
+        graph.add_edge(3, 4, highway="primary", is_synthetic=False)
+
+        # Before bridging, node 1 cannot reach node 4
+        assert graph.astar(1, 4) is None
+
+        # Run bridge_dead_ends with max_gap_m=30
+        bridged = graph.bridge_dead_ends(max_gap_m=30.0)
+        assert bridged > 0
+
+        # After bridging with allow_synthetic=True, path is found
+        res = graph.astar(1, 4, allow_synthetic=True)
+        assert res is not None
+
+        # When allow_synthetic=False (escape hatch), path cannot use synthetic edges
+        res_no_synth = graph.astar(1, 4, allow_synthetic=False)
+        assert res_no_synth is None

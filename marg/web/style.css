@@ -477,5 +477,69 @@ body { display: flex; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* ─── Live Tracking Panel & Simulation ────────────────────────────────────── */
+.panel-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: -6px;
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+.button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.button-group button {
+  flex: 1;
+}
+
+.range-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.track-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  margin-top: 10px;
+  border: 1px solid var(--border);
+}
+
+.user-live-marker {
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(79, 156, 249, 0.4), 0 0 12px rgba(79, 156, 249, 0.8);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.user-live-marker::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 50%;
+  background: rgba(79, 156, 249, 0.3);
+  animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 /* ─── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+

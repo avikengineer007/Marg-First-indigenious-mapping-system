@@ -53,7 +53,8 @@ class MargSettings(BaseSettings):
 
     # ── Tile serving ─────────────────────────────────────────────────────────
     tiles_path: str = "./data/tiles/india-pilot.pmtiles"
-    tile_upstream_url: str = ""
+    # ── Routing engine configuration ─────────────────────────────────────────
+    enable_synthetic_bridging: bool = True  # Heuristic topological gap repair toggle
 
     # ── Phase 2 telemetry (disabled by default) ──────────────────────────────
     telemetry_enabled: bool = False
@@ -108,6 +109,32 @@ class MargSettings(BaseSettings):
                 "max_lat": 19.2704,
                 "min_lon": 72.7757,
                 "max_lon": 73.0609,
+            },
+        },
+        "kolkata": {
+            "name": "Kolkata / West Bengal",
+            "geofabrik_url": (
+                "https://download.geofabrik.de/asia/india/"
+                "west-bengal-latest.osm.pbf"
+            ),
+            "bbox": {
+                "min_lat": 21.5,
+                "max_lat": 27.5,
+                "min_lon": 85.8,
+                "max_lon": 89.9,
+            },
+        },
+        "west-bengal": {
+            "name": "West Bengal",
+            "geofabrik_url": (
+                "https://download.geofabrik.de/asia/india/"
+                "west-bengal-latest.osm.pbf"
+            ),
+            "bbox": {
+                "min_lat": 21.5,
+                "max_lat": 27.5,
+                "min_lon": 85.8,
+                "max_lon": 89.9,
             },
         },
     }

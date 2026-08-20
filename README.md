@@ -137,12 +137,19 @@ See the full [API Specification](docs/api.md) for detailed schemas and parameter
 | Method | Endpoint | Description | Example Query |
 |---|---|---|---|
 | `GET` | `/route` | Turn-by-turn routing (Foot, Car, Bike) | `?start=12.9352,77.6245&end=12.9716,77.5946&profile=car` |
+| `POST` | `/route/track` | Live position tracking & off-route recalculation | `{"lat": 12.936, "lon": 77.625, "destination": "12.97,77.59"}` |
 | `GET` | `/geocode` | Forward geocoding: Place Name ➔ Coordinates | `?q=Connaught+Place+Delhi&limit=5` |
 | `GET` | `/geocode/reverse` | Reverse geocoding: Coordinates ➔ Address | `?lat=12.9352&lon=77.6245` |
 | `GET` | `/search` | POI & place keyword search with proximity bias | `?q=hospital&near_lat=12.93&near_lon=77.62` |
 | `GET` | `/tiles/{z}/{x}/{y}.pbf` | Vector map tile service | `/tiles/12/2855/1912.pbf` |
 | `GET` | `/health` | Health and readiness status for all backends | `/health` |
 | `POST` | `/telemetry/ping` | Phase 2: DPDP 2023-compliant anonymized pings | *(Disabled by default)* |
+
+> **Live Tracking Privacy & Zero-Persistence Guarantee:**
+> `/route/track` processes position updates strictly in-memory per request to detect route deviation and recalculate navigation paths. Coordinates are **never written to disk, databases, or logged as raw GPS values**.
+>
+> **External Geolocation Service:**
+> Marg consumes device position estimation (IP, WiFi MAC multilateration, Cell Tower triangulation) as an independent external dependency. See [`docs/geolocation_contract.md`](docs/geolocation_contract.md).
 
 ---
 

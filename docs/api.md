@@ -76,6 +76,87 @@ Calculate a route between two coordinates.
 
 ---
 
+## `POST /route/track`
+
+Real-time position tracking and deterministic off-route recalculation for active navigation sessions.
+
+> **Privacy & DPDP Guarantee:** Position updates sent to `/route/track` are processed **strictly in-memory per request** and are **never persisted, stored in databases, or logged as raw GPS coordinates**. This is a functional navigation loop distinct from Phase 2 aggregated telemetry.
+
+### Request Body
+
+```json
+{
+  "lat": 12.9360,
+  "lon": 77.6250,
+  "destination": "12.9716,77.5946",
+  "profile": "car",
+  "route_geometry": {
+    "type": "LineString",
+    "coordinates": [[77.6245, 12.9352], [77.5946, 12.9716]]
+  },
+  "off_route_threshold_m": 50.0,
+  "steps": true,
+  "overview": "full"
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `lat` | float | ✓ | Current device latitude (India-scoped) |
+| `lon` | float | ✓ | Current device longitude (India-scoped) |
+| `destination` | string | ✓ | Trip destination as `lat,lon` |
+| `profile` | string | | Routing profile: `foot` / `car` / `bike` (default: `car`) |
+| `route_geometry` | object | | Active GeoJSON `LineString` route geometry |
+| `off_route_threshold_m` | float | | Deviation threshold in meters (default: `50.0`) |
+| `steps` | boolean | | Include steps in reroute (default: `true`) |
+| `overview` | string | | Geometry detail: `full` / `simplified` / `false` |
+
+### Response: On Track (`off_route: false`)
+
+```json
+{
+  "status": "ok",
+  "off_route": false,
+  "distance_to_route_m": 8.4,
+  "message": "On track.",
+  "reroute": null
+}
+```
+
+### Response: Off Route (`off_route: true` with automatic re-route)
+
+```json
+{
+  "status": "ok",
+  "off_route": true,
+  "distance_to_route_m": 85.2,
+  "message": "Off-route detected. New route calculated.",
+  "reroute": {
+    "status": "ok",
+    "profile": "car",
+    "distance_m": 4120.0,
+    "duration_s": 690.0,
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [[77.6250, 12.9360], [77.5946, 12.9716]]
+    },
+    "steps": [ ... ],
+    "waypoints": [ ... ]
+  }
+}
+```
+
+---
+
+## External Geolocation Service
+
+For device position estimation (IP, WiFi BSSID/SSID multilateration, Cell Tower triangulation), see the standalone contract:
+- [`docs/geolocation_contract.md`](./geolocation_contract.md)
+
+---
+
 ## `GET /geocode`
 
 Forward geocoding: address or place name → coordinates.
