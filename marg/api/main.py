@@ -85,7 +85,14 @@ app = FastAPI(
 
 # ── Rate limiting state & handler ─────────────────────────────────────────────
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+@app.exception_handler(RateLimitExceeded)
+async def custom_rate_limit_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Structured, fail-closed response for rate limit violations."""
+    return JSONResponse(
+        {"status": "rate_limited", "detail": "Rate limit exceeded. Please retry shortly."},
+        status_code=429,
+    )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 app.add_middleware(
